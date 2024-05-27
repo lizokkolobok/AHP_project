@@ -1,0 +1,198 @@
+-- Create tables
+
+CREATE TABLE criteria (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    weight NUMERIC
+);
+
+CREATE TABLE alternatives (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL,
+    weight NUMERIC
+);
+
+CREATE TABLE criteria_comparisons (
+    id SERIAL PRIMARY KEY,
+    criteria1_id INT REFERENCES criteria(id),
+    criteria2_id INT REFERENCES criteria(id),
+    value NUMERIC
+);
+
+CREATE TABLE alternative_comparisons (
+    id SERIAL PRIMARY KEY,
+    alternative1_id INT REFERENCES alternatives(id),
+    alternative2_id INT REFERENCES alternatives(id),
+    criteria_id INT REFERENCES criteria(id),
+    value NUMERIC
+);
+
+-- Function to calculate priority vector
+CREATE OR REPLACE FUNCTION calculate_priority_vector(matrix NUMERIC[][]) RETURNS NUMERIC[] AS $$
+DECLARE
+    eigen_vector NUMERIC[];
+    sum_row NUMERIC;
+    sum_column NUMERIC[];
+    i INT;
+    j INT;
+BEGIN
+    -- Initialize sum_column with zeros
+    sum_column := ARRAY(SELECT 0 FROM generate_series(1, array_length(matrix, 1)));
+
+    -- Calculate sum of each column
+    FOR j IN 1..array_length(matrix, 2) LOOP
+        FOR i IN 1..array_length(matrix, 1) LOOP
+            sum_column[j] := sum_column[j] + matrix[i][j];
+        END LOOP;
+    END LOOP;
+
+    -- Calculate the normalized matrix
+    FOR i IN 1..array_length(matrix, 1) LOOP
+        FOR j IN 1..array_length(matrix, 2) LOOP
+            matrix[i][j] := matrix[i][j] / sum_column[j];
+        END LOOP;
+    END LOOP;
+
+    -- Calculate the eigen vector (average of rows)
+    eigen_vector := ARRAY(SELECT 0 FROM generate_series(1, array_length(matrix, 1)));
+    FOR i IN 1..array_length(matrix, 1) LOOP
+        sum_row := 0;
+        FOR j IN 1..array_length(matrix, 2) LOOP
+            sum_row := sum_row + matrix[i][j];
+        END LOOP;
+        eigen_vector[i] := sum_row / array_length(matrix, 2);
+    END LOOP;
+
+    RETURN eigen_vector;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to reshape an array
+
+CREATE OR REPLACE FUNCTION array_reshape(arr NUMERIC[], rows INT, cols INT) RETURNS NUMERIC[][] AS $$
+DECLARE
+    result NUMERIC[][];
+    i INT;
+    j INT;
+    idx INT := 1;
+BEGIN
+    result := ARRAY(SELECT ARRAY(SELECT 0 FROM generate_series(1, cols)) FROM generate_series(1, rows));
+    FOR i IN 1..rows LOOP
+        FOR j IN 1..cols LOOP
+            result[i][j] := arr[idx];
+            idx := idx + 1;
+        END LOOP;
+    END LOOP;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to calculate criteria weights
+
+CREATE OR REPLACE FUNCTION calculate_criteria_weights() RETURNS VOID AS $$
+
+DECLARE
+    matrix NUMERIC[][];
+    eigen_vector NUMERIC[];
+    criteria_count INT;
+BEGIN
+
+    criteria_count := (SELECT count(*) FROM criteria);
+
+    -- Fetch pairwise comparison matrix for criteria
+    SELECT array_agg(value ORDER BY criteria1_id, criteria2_id) INTO matrix
+    FROM criteria_comparisons;
+
+    -- Check if the matrix is correctly formed
+    IF array_length(matrix, 1) IS DISTINCT FROM criteria_count * criteria_count THEN
+        RAISE NOTICE 'Matrix size mismatch: expected %, got %', criteria_count * criteria_count, array_length(matrix, 1);
+        RETURN;
+    END IF;
+
+    -- Reshape the one-dimensional array into a two-dimensional matrix
+    matrix := array_reshape(matrix, criteria_count, criteria_count);
+
+    -- Ensure the matrix is not empty
+    IF matrix IS NULL THEN
+        RAISE NOTICE 'Matrix is NULL, cannot calculate eigen vector';
+        RETURN;
+    END IF;
+
+    -- Calculate the priority vector (eigenvector)
+    eigen_vector := calculate_priority_vector(matrix);
+
+    -- Ensure the eigen vector is not empty
+    IF eigen_vector IS NULL THEN
+        RAISE NOTICE 'Eigen vector is NULL, cannot update criteria weights';
+        RETURN;
+    END IF;
+
+    -- Update the weights of the criteria
+    FOR i IN 1..array_length(eigen_vector, 1) LOOP
+        UPDATE criteria SET weight = eigen_vector[i] WHERE id = i;
+    END LOOP;
+
+    RAISE NOTICE 'Criteria weights updated: %', eigen_vector;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to calculate alternative weights
+
+CREATE OR REPLACE FUNCTION calculate_alternative_weights() RETURNS VOID AS $$
+DECLARE
+    criteria_row RECORD;
+    matrix NUMERIC[][];
+    eigen_vector NUMERIC[];
+    criteria_weight NUMERIC;
+    alternative_weights NUMERIC[] := ARRAY(SELECT 0 FROM generate_series(1, (SELECT count(*) FROM alternatives)));
+    i INT;
+    j INT;
+    alternatives_count INT;
+BEGIN
+    alternatives_count := (SELECT count(*) FROM alternatives);
+
+    -- Calculate weights of alternatives for each criterion
+    FOR criteria_row IN SELECT id, weight FROM criteria LOOP
+        SELECT array_agg(value ORDER BY alternative1_id, alternative2_id) INTO matrix
+        FROM alternative_comparisons
+        WHERE criteria_id = criteria_row.id;
+
+        -- Check if the matrix is correctly formed
+        IF array_length(matrix, 1) IS DISTINCT FROM alternatives_count * alternatives_count THEN
+            RAISE NOTICE 'Matrix size mismatch for criterion %: expected %, got %', criteria_row.id, alternatives_count * alternatives_count, array_length(matrix, 1);
+            CONTINUE;
+        END IF;
+
+        -- Reshape the one-dimensional array into a two-dimensional matrix
+        matrix := array_reshape(matrix, alternatives_count, alternatives_count);
+
+        -- Ensure the matrix is not empty
+        IF matrix IS NULL THEN
+            RAISE NOTICE 'Matrix for criterion % is NULL, skipping...', criteria_row.id;
+            CONTINUE;
+        END IF;
+
+        eigen_vector := calculate_priority_vector(matrix);
+
+        -- Ensure the eigen vector is not empty
+        IF eigen_vector IS NULL THEN
+            RAISE NOTICE 'Eigen vector for criterion % is NULL, skipping...', criteria_row.id;
+            CONTINUE;
+        END IF;
+
+        criteria_weight := criteria_row.weight;
+
+        FOR i IN 1..array_length(eigen_vector, 1) LOOP
+            alternative_weights[i] := alternative_weights[i] + eigen_vector[i] * criteria_weight;
+        END LOOP;
+    END LOOP;
+
+    -- Update the weights of the alternatives
+    FOR i IN 1..array_length(alternative_weights, 1) LOOP
+        UPDATE alternatives SET weight = alternative_weights[i] WHERE id = i;
+    END LOOP;
+
+    RAISE NOTICE 'Alternative weights updated: %', alternative_weights;
+END;
+$$ LANGUAGE plpgsql;
