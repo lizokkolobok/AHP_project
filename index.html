@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criteria and Alternatives</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-labels@latest"></script>
+
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        .form-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .form-section {
+            margin: 0 20px;
+        }
+        .results {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        table {
+            margin: 0 20px;
+            border-collapse: collapse;
+            width: 300px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+
+        /* Style the tab content */
+        .tab {
+            margin: 8px; 
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+  background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+  background-color: #ccc;
+}
+
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+textarea {
+    width: 100%;
+    min-height: 100px; /* Minimum height */
+    max-height: 400px; /* Maximum height */
+    min-width: 800px;
+    overflow-y: auto; /* Vertical scrollbar */
+}
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+ }
+
+ .form-container table {
+    width: 750px;
+    margin: 2px 0px;
+}
+.form-container table th {
+    color:gray;
+    font-weight:normal
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Data Input</h1>
+        <div class="form-container">
+            <div class="form-section">
+                <h2>Insert Criteria</h2>
+                <form id="criteriaForm">
+                    <div id="criteriaFields">
+                        <input type="text" name="criteria" placeholder="Enter Criteria">
+                    </div>
+                    <button type="button" onclick="addCriteriaField()">Add+</button>
+                </form>
+                <button onclick="parseLoadCsvData('criteria')">Load Criteria CSV</button>
+            </div>
+            <div class="form-section">
+                <h2>Insert Alternatives</h2>
+                <form id="alternativesForm">
+                    <div id="alternativesFields">
+                        <input type="text" name="alternatives" placeholder="Enter Alternative">
+                    </div>
+                    <button type="button" onclick="addAlternativeField()">Add+</button>
+                </form>
+                <button onclick="parseLoadCsvData('alternatives')">Load Alternatives CSV</button>
+            </div>
+            
+        </div>
+       
+        <button onclick="createData()">Create Data</button>
+       
+        
+
+
+        <div class="results">
+            <div>
+                <h2>Criteria Data</h2>
+                <table id="criteriaTable">
+                    <tr><th>ID</th><th>Name</th></tr>
+                </table>
+            </div>
+            <div>
+                <h2>Alternatives Data</h2>
+                <table id="alternativesTable">
+                    <tr><th>ID</th><th>Name</th></tr>
+                </table>
+            </div>
+        </div>
+
+        <h1>Insert Pairwise Comparisons</h1>
+        <div class="form-container">
+            <div class="form-section">
+                <h2>Criteria Comparisons</h2>
+                <form id="criteriaComparisonForm">
+                    <table id="criteriaComparisonFieldsTable">
+                        <thead>
+                            <tr>
+                                <th class="unselectable">Criteria 1 ID or NAME</th>
+                                <th class="unselectable">Criteria 2 ID or NAME</th>
+                                <th class="unselectable">Value (e.g., 1/2, 5/2)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="criteriaComparisonFields">
+                            <tr>
+                                <td contenteditable='true' ></td>
+                                <td contenteditable='true'></td>
+                                <td contenteditable='true' ></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="button" onclick="addCriteriaComparisonField()">Add+</button>
+                    
+                </form>
+                <button type="button" class="add-button" onclick="parseLoadComparisonCsvData('criteria')">Load Criteria Comp CSV</button>
+            </div>
+            <div class="form-section">
+                <h2>Alternative Comparisons by Criterion</h2>
+                <form id="alternativeComparisonForm">
+                    <table id="alternativeComparisonFieldsTable">
+                        <thead>
+                            <tr>
+                                <th>Alternative 1 ID or NAME</th>
+                                <th>Alternative 2 ID or NAME</th>
+                                <th>Criteria ID or NAME</th>
+                                <th>Value (e.g., 1.5, 5/2)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alternativeComparisonFields">
+                            <tr>
+                                <td contenteditable='true'></td>
+                                <td contenteditable='true'></td>
+                                <td contenteditable='true'></td>
+                                <td contenteditable='true'></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="button" class="add-button" onclick="addAlternativeComparisonField()">Add+</button>
+                    
+                </form>
+                <button type="button" class="add-button" onclick="parseLoadComparisonCsvData('alternative')">Load Alternatives Comp CSV</button>
+            </div>
+        </div>
+        <button onclick="insertPairwiseComparisons()">Insert Pairwise Comparisons</button>
+
+        <div class="tab">
+            <button class="tablinks" onclick="openTab(event, 'dynamicFunctions')" id="defaultOpen">Dynamic Functions</button>
+            <button class="tablinks" onclick="openTab(event, 'executeFunctions')">Execute Functions</button>
+            <button class="tablinks" onclick="openTab(event, 'deleteFunctions')">Delete Functions</button>
+
+        </div>
+
+        <div id="dynamicFunctions" class="tabcontent">
+            <div class="form-section">
+                <h2>Dynamic Functions</h2>
+                <div class="form-container">
+                    <div class="form-section">
+                        <h3>Insert Criteria Reciprocal Comparisons</h3>
+                        <form id="criteriaReciprocalComparisonForm">
+                            <button type="button" onclick="insertCriteriaReciprocalComparisons()">Insert Criteria Reciprocal Comparisons</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Ensure Criteria Self Comparisons</h3>
+                        <form id="criteriaSelfComparisonForm">
+                            <button type="button" onclick="ensureCriteriaSelfComparisons()">Ensure Criteria Self Comparisons</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Insert Alternative Reciprocal Comparisons</h3>
+                        <form id="alternativeReciprocalComparisonForm">
+                            <input type="text" name="criteria_name" placeholder="Criteria Name">
+                            <button type="button" onclick="insertAlternativeReciprocalComparisons()">Insert Alternative Reciprocal Comparisons</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Ensure Alternatives Self Comparisons</h3>
+                        <form id="alternativesSelfComparisonForm">
+                            <input type="text" name="criteria_name" placeholder="Criteria Name">
+                            <button type="button" onclick="ensureAlternativesSelfComparisons()">Ensure Alternatives Self Comparisons</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="executeFunctions" class="tabcontent">
+            <div class="form-section">
+                <h2>Execute Functions</h2>
+                <div class="form-container">
+                    <form id="executeQueryForm">
+                        <textarea name="sqlQuery" id="sqlQuery" placeholder="Enter SQL Query"></textarea>
+                        <button type="button" onclick="executeQuery()">Execute Query</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="deleteFunctions" class="tabcontent">
+            <div class="form-section">
+                <h2>Delete Functions</h2>
+                <div class="form-container">
+                    <div class="form-section">
+                        <h3>Delete Alternatives</h3>
+                        <form id="deleteAlternativesForm">
+                            <button type="button" onclick="deleteAlternatives()">Delete Alternatives</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Delete Criteria</h3>
+                        <form id="deleteCriteriaForm">
+                            <button type="button" onclick="deleteCriteria()">Delete Criteria</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Delete Criteria Comparisons</h3>
+                        <form id="deleteCriteriaComparisonsForm">
+                            <button type="button" onclick="deleteCriteriaComparisons()">Delete Criteria Comparisons</button>
+                        </form>
+                    </div>
+                    <div class="form-section">
+                        <h3>Delete Alternative Comparisons</h3>
+                        <form id="deleteAlternativeComparisonsForm">
+                            <button type="button" onclick="deleteAlternativeComparisons()">Delete Alternative Comparisons</button>
+                        </form>
+                    </div>
+
+                    
+                </div>
+            </div>
+        </div>
+
+        <div class="results">
+            <div>
+                <h2>Criteria Comparison Results</h2>
+                <table id="criteriaComparisonTable">
+                    <tr><th>ID</th><th>Criteria 1 ID</th><th>Criteria 2 ID</th><th>Value</th></tr>
+                </table>
+            </div>
+            <div>
+                <h2>Alternative Comparison Results</h2>
+                <table id="alternativeComparisonTable">
+                    <tr><th>ID</th><th>Alternative 1 ID</th><th>Alternative 2 ID</th><th>Criteria ID</th><th>Value</th></tr>
+                </table>
+            </div>
+        </div>
+
+        <h1>Calculation Results </h1>
+        <button onclick="calculate()">Calculate</button>
+        <div class="results">
+            <div>
+                <h2>Criteria Results</h2>
+                <table id="criteriaTableResults">
+                    <tr><th>ID</th><th>Name</th><th>Weight</th></tr>
+                </table>
+            </div>
+            <div>
+                <h2>Alternatives Results</h2>
+                <table id="alternativesTableResults">
+                    <tr><th>ID</th><th>Name</th><th>Weight</th></tr>
+                </table>
+                <div id="chartContainer">
+                    <canvas id="alternativesChart"></canvas>
+                </div>
+                <div id="testChartContainer">
+                    <canvas id="testChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        function addCriteriaField() {
+            $('#criteriaFields').append('<input type="text" name="criteria" placeholder="Enter Criteria">');
+        }
+
+        function addAlternativeField() {
+            $('#alternativesFields').append('<input type="text" name="alternatives" placeholder="Enter Alternative">');
+        }
+
+        function addCriteriaComparisonField() {
+            $('#criteriaComparisonFields').append(
+            '<tr>' +
+            '<td contenteditable="true"></td>' +
+            '<td contenteditable="true"></td>' +
+            '<td contenteditable="true"></td>' +
+            '</tr>'
+            );
+        }
+
+        function addAlternativeComparisonField() {
+            $('#alternativeComparisonFields').append(
+            '<tr>' +
+            '<td contenteditable="true"></td>' +
+            '<td contenteditable="true"></td>' +
+            '<td contenteditable="true"></td>' +
+            '<td contenteditable="true"></td>' +
+            '</tr>'
+            );
+            
+        }
+
+        function createData() {
+            var criteria = [];
+            var alternatives = [];
+            $('#criteriaFields input[name="criteria"]').each(function() {
+                criteria.push($(this).val());
+            });
+            $('#alternativesFields input[name="alternatives"]').each(function() {
+                //alert("alternativesFields ")
+                alternatives.push($(this).val());
+            });
+            $.ajax({
+                url: '/add_criteria',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({names: criteria}),
+                success: function(response) {
+                    if (response.status === "success") {
+                        alert('Criteria added successfully');
+                        $('#criteriaFields input').val('');
+                        loadCriteria();
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error: ' + error);
+                }
+            });
+            $.ajax({
+                url: '/add_alternatives',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({names: alternatives}),
+                success: function(response) {
+                    if (response.status === "success") {
+                        alert('Alternatives added successfully');
+                        $('#AlternativesFields input').val('');
+                        loadAlternatives();
+                        
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error: ' + error);
+                }
+            });
+        }
+
+        function loadCriteria() {
+            $.get('/get_criteria', function(data) {
+                $('#criteriaTable').find('tr:not(:first)').remove();
+                data.forEach(function(item) {
+                    $('#criteriaTable').append('<tr><td>' + item.id + '</td><td>' + item.name + '</td></tr>');
+                });
+            });
+        }
+
+        function loadAlternatives() {
+            $.get('/get_alternatives', function(data) {
+                $('#alternativesTable').find('tr:not(:first)').remove();
+                data.forEach(function(item) {
+                    $('#alternativesTable').append('<tr><td>' + item.id + '</td><td>' + item.name + '</td></tr>');
+                });
+            });
+        }
+
+        function loadCriteriaComparisons() {
+        $.get('/get_criteria_comparison', function(data) {
+            $('#criteriaComparisonTable').find('tr:not(:first)').remove();
+            data.forEach(function(item) {
+                $('#criteriaComparisonTable').append('<tr><td>' + item.id + '</td><td>' + item.criteria1_id + '</td><td>' + item.criteria2_id + '</td><td>' + item.value + '</td></tr>');
+            });
+        });
+        }
+
+        // Function to load alternatives data
+        function loadAlternativeComparisons() {
+            $.get('/get_alternative_comparison', function(data) {
+                $('#alternativeComparisonTable').find('tr:not(:first)').remove();
+                data.forEach(function(item) {
+                    $('#alternativeComparisonTable').append('<tr><td>' + item.id + '</td><td>' + item.alternative1_id + '</td><td>' + item.alternative2_id + '</td><td>' + item.criteria_id + '</td><td>' + item.value + '</td></tr>');
+                });
+            });
+        }
+
+
+        function insertPairwiseComparisons() {
+            var criteriaComparisons = [];
+            $('#criteriaComparisonFields > tr').each(function() {
+            var comparison = {
+                criteria1_id: $(this).find('td').eq(0).text().trim(),
+                criteria2_id: $(this).find('td').eq(1).text().trim(),
+                value: eval($(this).find('td').eq(2).text().trim())
+            };
+            criteriaComparisons.push(comparison);
+            });
+
+            var alternativeComparisons = [];
+            $('#alternativeComparisonFields > tr').each(function() {
+            var comparison = {
+                alternative1_id: $(this).find('td').eq(0).text().trim(),
+                alternative2_id: $(this).find('td').eq(1).text().trim(),
+                criteria_id: $(this).find('td').eq(2).text().trim(),
+                value: eval($(this).find('td').eq(3).text().trim())
+            };
+            alternativeComparisons.push(comparison);
+            });
+
+            $.ajax({
+                url: '/add_criteria_comparison',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({"comparisons": criteriaComparisons}),
+                success: function(response) {
+                    if (response.status === "success") {
+                        alert('Criteria comparisons added successfully: '+response.message);
+                        loadCriteriaComparisons();
+                        //$('#criteriaComparisonFields input').val('');
+                        //$('#criteriaComparisonFields td').empty();
+                        
+                        var tbodyComparisonFields = document.getElementById("criteriaComparisonFields");
+
+                                                while (tbodyComparisonFields.firstChild)
+                                                {
+                                                    tbodyComparisonFields.removeChild(tbodyComparisonFields.firstChild);
+                                                }
+
+                                                var newRow = document.createElement("tr");
+
+                                                // Create and append three <td> elements with contenteditable attribute set to true
+                                                for (var i = 0; i < 3; i++) {
+                                                    var newCell = document.createElement("td");
+                                                    newCell.setAttribute("contenteditable", "true");
+                                                    newRow.appendChild(newCell);
+                                                }
+
+                                                // Append the new row to the tbody element
+                                                tbodyComparisonFields.appendChild(newRow);
+
+                                                var tbodyalternativeComparisonFields = document.getElementById("alternativeComparisonFields");
+
+                                                while (tbodyalternativeComparisonFields.firstChild)
+                                                {
+                                                    tbodyalternativeComparisonFields.removeChild(tbodyalternativeComparisonFields.firstChild);
+                                                }
+
+                                                var newRow_2 = document.createElement("tr");
+
+                                                // Create and append three <td> elements with contenteditable attribute set to true
+                                                for (var i = 0; i < 4; i++) {
+                                                    var newCell_2 = document.createElement("td");
+                                                    newCell_2.setAttribute("contenteditable", "true");
+                                                    newRow_2.appendChild(newCell_2);
+                                                }
+
+                                                // Append the new row to the tbody element
+                                                tbodyalternativeComparisonFields.appendChild(newRow_2);
+                                                
+                                                
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error: ' + error);
+                }
+            });
+
+            $.ajax({
+                url: '/add_alternative_comparison',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({"comparisons": alternativeComparisons}),
+                success: function(response) {
+                    if (response.status === "success") {
+                        alert('Alternative comparisons added successfully');
+                        loadAlternativeComparisons();
+                        //$('#alternativeComparisonFields input').val('');
+                        $('#alternativeComparisonFields td').empty();
+
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Error: ' + error);
+                }
+            });
+        };
+        function insertCriteriaReciprocalComparisons() {
+    $.ajax({
+        url: '/insert_criteria_reciprocal_comparisons',
+        type: 'POST',
+        contentType: 'application/json',
+        success: function(response) {
+            if (response.status === "success") {
+                alert('Criteria reciprocal comparisons inserted successfully');
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Error: ' + error);
+        }
+    });
+}
+
+function ensureCriteriaSelfComparisons() {
+    $.ajax({
+        url: '/ensure_criteria_self_comparisons',
+        type: 'POST',
+        contentType: 'application/json',
+        success: function(response) {
+            if (response.status === "success") {
+                alert('Criteria self comparisons ensured successfully');
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Error: ' + error);
+        }
+    });
+}
+
+function insertAlternativeReciprocalComparisons() {
+    var criteriaName = $('#alternativeReciprocalComparisonForm input[name="criteria_name"]').val();
+    if (!criteriaName) {
+        alert('Error: Criteria name is required:'+criteriaName);
+        return;
+    }
+    //alert('Error: Criteria name is required:'+criteriaName);
+    $.ajax({
+        url: '/insert_alternative_reciprocal_comparisons',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({"criteria_name": criteriaName}),
+        success: function(response) {
+            if (response.status === "success") {
+                alert('Alternative reciprocal comparisons inserted successfully');
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            } else {
+                alert('Error response: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Error: ' + error);
+        }
+    });
+}
+
+function ensureAlternativesSelfComparisons() {
+    var criteriaName = $('#alternativesSelfComparisonForm input[name="criteria_name"]').val();
+    if (!criteriaName) {
+        alert('Error: Criteria name is required:'+criteriaName);
+        return;
+    }
+
+    $.ajax({
+        url: '/ensure_alternatives_self_comparisons',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({"criteria_name": criteriaName}),
+        success: function(response) {
+            if (response.status === "success") {
+                alert('Alternatives self comparisons ensured successfully');
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            } else {
+                alert('Error response: ' + response.message);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('Error: ' + error);
+        }
+    });
+}
+function deleteAlternatives() {
+        $.ajax({
+            url: '/delete_alternatives',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                alert(response.message);
+                //loadAlternativesResults(undefined);
+                $('#alternativesTableResults').empty();
+
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON ? xhr.responseJSON.message : "An error occurred.";
+                alert(errorMessage);
+            }
+        });
+    }
+
+    function deleteAlternativeComparisons() {
+        $.ajax({
+            url: '/delete_alternative_comparisons',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                alert(response.message);
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON ? xhr.responseJSON.message : "An error occurred.";
+                alert(errorMessage);
+            }
+        });
+    }
+
+    function deleteCriteriaComparisons() {
+        $.ajax({
+            url: '/delete_criteria_comparisons',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                alert(response.message);
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON ? xhr.responseJSON.message : "An error occurred.";
+                alert(errorMessage);
+            }
+        });
+    }
+
+    function deleteCriteria() {
+        $.ajax({
+            url: '/delete_criteria',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                alert(response.message);
+                //$('#criteriaTableResults').empty();
+                //$('#criteriaTableResults tr').remove(); 
+
+                
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = xhr.responseJSON ? xhr.responseJSON.message : "An error occurred.";
+                alert(errorMessage);
+            }
+        });
+    }
+
+
+function openTab(evt, cityName) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(cityName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+
+        function executeQuery() 
+        {
+            const sqlQuery  = document.getElementById('sqlQuery').value;
+            if (!sqlQuery) {
+                alert("Please enter a SQL query.");
+                return;
+            }
+            $.ajax({
+            url: '/execute_query',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ sqlQuery: sqlQuery }),
+            success: function(response) {
+                if (response.status === 'success') {
+                alert('Query successful');
+                //loadCriteriaResults(response.criteria);
+                //loadAlternativesResults(response.alternatives);
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+                //loadGraph(response.alternatives);
+            } else {
+                alert('Query Error: ' + response.message + '\nDetails: ' + response.details);
+            }
+            },
+            error: function(xhr, status, error) {
+                alert('Query Exception Error: ' + error);
+            }
+            });
+
+        }
+     // Function to calculate criteria and alternatives
+     function calculate() {
+        $.ajax({
+            url: '/calculate',
+            type: 'POST',
+            contentType: 'application/json',
+            success: function(response) {
+                if (response.status === 'success') {
+                alert('Calculation successful');
+                loadCriteriaResults(response.criteria);
+                loadAlternativesResults(response.alternatives);
+                loadCriteriaComparisons();
+                loadAlternativeComparisons();
+                loadGraph(response.alternatives);
+            } else {
+                alert('Error: ' + response.message + '\nDetails: ' + response.details);
+            }
+            },
+            error: function(xhr, status, error) {
+                alert('Error: ' + error);
+            }
+        });
+    }
+
+    // Function to load criteria results
+    function loadCriteriaResults(criteria) {
+        $('#criteriaTableResults').find('tr:not(:first)').remove();
+        criteria.forEach(function(item) {
+            $('#criteriaTableResults').append('<tr><td>' + item.id + '</td><td>' + item.name + '</td><td>' + item.weight + '</td></tr>');
+        });
+    };
+
+    // Function to load alternatives results
+    function loadAlternativesResults(alternatives) {
+        $('#alternativesTableResults').find('tr:not(:first)').remove();
+        alternatives.forEach(function(item) {
+            $('#alternativesTableResults').append('<tr><td>' + item.id + '</td><td>' + item.name + '</td><td>' + item.weight + '</td></tr>');
+        });
+    };
+
+    // Function to load graph for alternatives
+    function loadGraph(alternatives) {
+    var labels = [];
+    var weights = [];
+    alternatives.forEach(function(item) {
+        labels.push(item.name);
+        weights.push(item.weight);
+    });
+
+    // Clear the existing canvas
+    var chartContainer = document.getElementById('chartContainer');
+    chartContainer.innerHTML = '<canvas id="alternativesChart"></canvas>';
+
+    // Check if Chart.js is imported
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        alert('Chart.js is not loaded');
+        return;
+    }
+
+    // console.log('Chart.js is loaded successfully');
+
+    var canvas = document.getElementById('alternativesChart');
+    if (!canvas) {
+        console.error('Failed to find the canvas element');
+        alert('Failed to find the canvas element');
+        return;
+    }
+
+    var ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.error('Failed to get the 2D context');
+        alert('Failed to get the 2D context');
+        return;
+    }
+
+    var myChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+           // labels: labels, // Include labels here
+            datasets: [{
+                label: 'Weight',
+                data: weights,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                datalabels: {
+                    display: 'auto',
+                    color: 'black',
+                    font: {
+                        weight: 'bold'
+                    },
+                    formatter: (value, ctx) => {
+                        const total = ctx.chart.getDatasetMeta(0).total;
+                        let percentage = (value * 100 / total).toFixed(2) + "%";
+                        return percentage + ' (' + labels[ctx.dataIndex] + ')';
+                    },
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+
+    // Check if the chart is created successfully
+    if (myChart) {
+        //console.log('Chart created successfully:', myChart);
+    } else {
+        console.error('Failed to create chart');
+        alert('Failed to create chart');
+    }
+}
+
+  
+
+$('#criteriaForm input').on('paste', function(event) {
+    
+    var clipboardData = event.originalEvent.clipboardData || window.clipboardData;
+    var pastedText = clipboardData.getData('text');
+    
+    // Split pasted text by newlines or commas
+    var values = pastedText.split(/[\n,]+/);
+    
+    $('#criteriaFields input').first().remove();
+
+    //var $firstInput = $('#criteriaFields input').first();
+    //alert("firstInput values "+values);
+    //alert("firstInput "+values.shift());
+    //$firstInput.val(''); // Remove and get the first value
+    values.forEach(function(value) {
+        $('#criteriaFields').append('<input type="text" name="criteria" placeholder="Enter Criteria" value="' + value + '">');
+    });
+}); 
+
+// Alternatives form
+$('#alternativesForm input').on('paste', function(event) {
+    var clipboardData = event.originalEvent.clipboardData || window.clipboardData;
+    var pastedText = clipboardData.getData('text');
+    
+    // Split pasted text by newlines or commas
+    var values = pastedText.split(/[\n,]+/);
+    
+    $('#alternativesFields input').first().remove();
+
+    //var $firstInput = $('#alternativesFields input').first();
+    //$firstInput.val(values.shift()); // Remove and get the first value
+    values.forEach(function(value) {
+        $('#alternativesFields').append('<input type="text" name="alternatives" placeholder="Enter Alternative" value="' + value + '">');
+    });
+});
+
+document.addEventListener('paste', function(event) {
+        let clipboardData = event.clipboardData || window.clipboardData;
+        let pastedData = clipboardData.getData('Text');
+
+        // Get the active element
+        let activeElement = document.activeElement;
+        //alert("paste tagName "+activeElement.tagName);
+        // Check if the active element is a contenteditable cell within a table
+        if (activeElement.tagName === 'TD' && activeElement.isContentEditable) {
+            event.preventDefault();
+
+            //let rows = pastedData.split('\n').map(row => row.split('\t'));
+            let delimiter = pastedData.includes('\t') ? '\t' : ',';
+            let rows = pastedData.split('\n').map(row => row.split(delimiter));
+
+            //alert("rows "+rows);
+            let startRow = activeElement.parentElement;
+            let startCell = activeElement;
+
+            for (let i = 0; i < rows.length; i++) {
+                let currentRow = startRow;
+                if (i > 0) {
+                    if (activeElement.closest('form').id === 'criteriaComparisonForm') {
+                        addCriteriaComparisonField();
+                    } else if (activeElement.closest('form').id === 'alternativeComparisonForm') {
+                        addAlternativeComparisonField();
+                    }
+                    currentRow = startRow.nextElementSibling;
+                    startRow = currentRow;
+                }
+
+                let cells = currentRow.querySelectorAll('td');
+                for (let j = 0; j < rows[i].length; j++) {
+                    if (j >= cells.length) {
+                        break;
+                    }
+                    cells[j].innerText = rows[i][j];
+                }
+            }
+        }
+    });
+    function parseLoadCsvData(type) {
+        // Create a file input element
+        var input = document.createElement('input');
+        input.type = 'file';
+
+        // Trigger click event to open file dialog
+        input.click();
+
+        // Handle file selection
+        input.onchange = function(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+
+            // Read the file contents
+            reader.onload = function(e) {
+                var csv = e.target.result;
+                
+                // Split the CSV data into rows
+                var rows = csv.split('\n');
+                
+                // Extract data from CSV based on the type
+                var data = [];
+                rows.forEach(function(row) {
+    var values = row.split(',');
+    if (values.length > 0) {
+        values.forEach(function(value) {
+            if (value.trim() !== '') {
+                data.push(value.trim());
+            }
+        });
+    }
+});
+                
+                // Populate the respective fields
+                var fields = $('#' + type + 'Fields');
+                fields.empty();
+                data.forEach(function(value) {
+    fields.append('<input type="text" name="' + type + '" placeholder="Enter ' + type.charAt(0).toUpperCase() + type.slice(1) + '" value="' + value + '">');
+});
+            };
+
+            // Read the file as text
+            reader.readAsText(file);
+        };
+    }
+    function parseLoadComparisonCsvData(type) {
+    var input = document.createElement('input');
+    input.type = 'file';
+    //input.accept = '.csv';
+
+    input.onchange = function() {
+        var file = input.files[0];
+        var reader = new FileReader();
+        
+        reader.onload = function(event) {
+            var content = event.target.result;
+            var rows = content.split('\n');
+
+            var tbodyId = (type === 'criteria') ? 'criteriaComparisonFields' : 'alternativeComparisonFields';
+            var tbody = document.getElementById(tbodyId);
+            tbody.innerHTML = ''; // Clear previous content
+            
+            rows.forEach(function(row) {
+                var values = row.split(',');
+                var tr = document.createElement('tr');
+                values.forEach(function(value) {
+                    var td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.textContent = value.trim();
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        };
+        
+        reader.readAsText(file);
+    };
+
+    input.click();
+}
+    
+$(document).ready(function() {
+    loadCriteria();
+    loadAlternatives();
+    loadCriteriaComparisons();
+    loadAlternativeComparisons();
+    document.getElementById("defaultOpen").click();
+
+});
+
+</script>
+</body>
+</html>
