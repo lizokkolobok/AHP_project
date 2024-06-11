@@ -1,0 +1,6 @@
+Volkswagen Teramont,Skoda Kodiaq,Цена,1.5
+Volkswagen Teramont,Hyundai Santa Fe,Цена,1.2
+Volkswagen Teramont,Toyota Highlander,Цена,1.3
+Skoda Kodiaq,Hyundai Santa Fe,Цена,1/1.1
+Skoda Kodiaq,Toyota Highlander,Цена,1/1.2
+Hyundai Santa Fe,Toyota Highlander,Цена,1/1.1
